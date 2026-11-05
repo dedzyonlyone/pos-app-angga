@@ -3,6 +3,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ProductController;
 
 // Guest
 Route::middleware('guest')->group(function () {
@@ -16,10 +17,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/', DashboardController::class)->name('dashboard');
 
-    // === KATEGORI (SUDAH JADI) ===
+    // === SUDAH JADI ===
     Route::resource('categories', CategoryController::class)->except('show');
+    Route::resource('products', ProductController::class);
 
-    // === SEMENTARA (closure) — nanti diganti per modul ===
+    // === SEMENTARA (closure) ===
     Route::get('/sales', fn() => 'Riwayat Transaksi — segera hadir')->name('sales.index');
     Route::get('/sales/create', fn() => 'Kasir — segera hadir')->name('sales.create');
     Route::get('/sales/{sale}', fn($sale) => 'Detail #'.$sale)->name('sales.show');
@@ -28,14 +30,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile/password', fn() => 'Ubah Password — segera hadir')->name('profile.password');
     Route::put('/profile/password', fn() => back())->name('profile.password.update');
-
-    Route::get('/products', fn() => 'Produk — segera hadir')->name('products.index');
-    Route::get('/products/create', fn() => 'Tambah Produk — segera hadir')->name('products.create');
-    Route::post('/products', fn() => back())->name('products.store');
-    Route::get('/products/{product}', fn($product) => 'Detail Produk #'.$product)->name('products.show');
-    Route::get('/products/{product}/edit', fn($product) => 'Edit Produk #'.$product)->name('products.edit');
-    Route::put('/products/{product}', fn($product) => back())->name('products.update');
-    Route::delete('/products/{product}', fn($product) => back())->name('products.destroy');
 
     Route::get('/customers', fn() => 'Pelanggan — segera hadir')->name('customers.index');
     Route::get('/customers/create', fn() => 'Tambah Pelanggan — segera hadir')->name('customers.create');
