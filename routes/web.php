@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CustomerController;
 
 // Guest
 Route::middleware('guest')->group(function () {
@@ -20,6 +21,7 @@ Route::middleware('auth')->group(function () {
     // === SUDAH JADI ===
     Route::resource('categories', CategoryController::class)->except('show');
     Route::resource('products', ProductController::class);
+    Route::resource('customers', CustomerController::class);
 
     // === SEMENTARA (closure) ===
     Route::get('/sales', fn() => 'Riwayat Transaksi — segera hadir')->name('sales.index');
@@ -30,14 +32,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile/password', fn() => 'Ubah Password — segera hadir')->name('profile.password');
     Route::put('/profile/password', fn() => back())->name('profile.password.update');
-
-    Route::get('/customers', fn() => 'Pelanggan — segera hadir')->name('customers.index');
-    Route::get('/customers/create', fn() => 'Tambah Pelanggan — segera hadir')->name('customers.create');
-    Route::post('/customers', fn() => back())->name('customers.store');
-    Route::get('/customers/{customer}', fn($customer) => 'Detail #'.$customer)->name('customers.show');
-    Route::get('/customers/{customer}/edit', fn($customer) => 'Edit #'.$customer)->name('customers.edit');
-    Route::put('/customers/{customer}', fn($customer) => back())->name('customers.update');
-    Route::delete('/customers/{customer}', fn($customer) => back())->name('customers.destroy');
 
     Route::get('/suppliers', fn() => 'Supplier — segera hadir')->name('suppliers.index');
     Route::get('/suppliers/create', fn() => 'Tambah Supplier — segera hadir')->name('suppliers.create');
