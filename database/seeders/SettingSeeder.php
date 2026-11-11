@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Seeders;
 
 use App\Models\Setting;
@@ -8,9 +9,15 @@ class SettingSeeder extends Seeder
 {
     public function run(): void
     {
-        Setting::set('store_name', 'Toko Sejahtera', 'store');
-        Setting::set('store_address', 'Jl. Merdeka No. 1, Jakarta', 'store');
-        Setting::set('store_phone', '021-1234567', 'store');
-        Setting::set('receipt_footer', 'Terima kasih atas kunjungan Anda', 'receipt');
+        $defaults = [
+            'store_name' => 'Toko Sejahtera',
+            'store_address' => 'Jl. Merdeka No. 10, Jakarta',
+            'store_phone' => '081234567890',
+            'receipt_footer' => 'Terima kasih telah berbelanja',
+        ];
+
+        foreach ($defaults as $key => $value) {
+            Setting::create(['key' => $key, 'value' => $value]);
+        }
     }
 }

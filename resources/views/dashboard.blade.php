@@ -1,53 +1,95 @@
 @extends('layouts.app')
+
 @section('title', 'Dashboard')
+
 @section('content')
-<div class="row g-3 mb-3">
-    @php
-    $stat = [
-        ['label'=>'Penjualan Hari Ini','value'=>rupiah($cards['penjualan_hari_ini']),'icon'=>'cash-coin','color'=>'#10b981','bg'=>'#d1fae5'],
-        ['label'=>'Transaksi Hari Ini','value'=>$cards['transaksi_hari_ini'],'icon'=>'receipt','color'=>'#3b82f6','bg'=>'#dbeafe'],
-        ['label'=>'Produk Stok Menipis','value'=>$cards['stok_menipis'],'icon'=>'exclamation-triangle','color'=>'#f59e0b','bg'=>'#fef3c7'],
-        ['label'=>'Produk Aktif','value'=>$cards['produk_aktif'],'icon'=>'box-seam','color'=>'#8b5cf6','bg'=>'#ede9fe'],
-    ];
-    @endphp
-    @foreach($stat as $s)
-    <div class="col-md-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background:{{ $s['bg'] }};color:{{ $s['color'] }}">
-                <i class="bi bi-{{ $s['icon'] }}"></i>
-            </div>
-            <div>
-                <div class="stat-label">{{ $s['label'] }}</div>
-                <div class="stat-value">{{ $s['value'] }}</div>
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Penjualan Hari Ini</div>
+                    <div class="stat-value">{{ rupiah($salesToday) }}</div>
+                </div>
+                <span class="stat-icon"><i class="bi bi-cash-stack"></i></span>
             </div>
         </div>
     </div>
-    @endforeach
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Transaksi Hari Ini</div>
+                    <div class="stat-value">{{ $countToday }}</div>
+                </div>
+                <span class="stat-icon"><i class="bi bi-receipt-cutoff"></i></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Stok Menipis</div>
+                    <div class="stat-value">{{ $lowStock }}</div>
+                </div>
+                <span class="stat-icon"><i class="bi bi-exclamation-triangle"></i></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Produk Aktif</div>
+                    <div class="stat-value">{{ $activeProducts }}</div>
+                </div>
+                <span class="stat-icon"><i class="bi bi-box-seam"></i></span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span>5 Transaksi Terakhir</span>
-        <a href="{{ route('sales.index') }}" class="btn btn-sm btn-outline-primary">Lihat semua</a>
+        <span><i class="bi bi-clock-history me-1"></i> 5 Transaksi Terakhir</span>
+        <a href="#" class="btn btn-sm btn-outline-primary disabled" tabindex="-1">
+            Lihat Semua
+        </a>
     </div>
-    <div class="table-responsive">
-        <table class="table mb-0">
-            <thead><tr><th>Invoice</th><th>Tanggal</th><th>Kasir</th><th>Pelanggan</th><th class="amount">Total</th><th>Status</th></tr></thead>
-            <tbody>
-            @forelse($recentSales as $s)
-                <tr>
-                    <td><a href="{{ route('sales.show',$s) }}" class="text-decoration-none fw-semibold">{{ $s->invoice_number }}</a></td>
-                    <td>{{ $s->sale_date->format('d/m/Y H:i') }}</td>
-                    <td>{{ $s->user->name }}</td>
-                    <td>{{ $s->customer->name ?? 'Umum' }}</td>
-                    <td class="amount">{{ rupiah($s->total) }}</td>
-                    <td>{!! $s->status === 'paid' ? '<span class="badge badge-ok">Paid</span>' : '<span class="badge badge-void">Void</span>' !!}</td>
-                </tr>
-            @empty
-                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada transaksi</td></tr>
-            @endforelse
-            </tbody>
-        </table>
+    <div class="card-body p-0">
+        @if($latestSales->isEmpty())
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                Belum ada transaksi hari ini.
+            </div>
+        @else
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Tanggal</th>
+                            <th>Pelanggan</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($latestSales as $sale)
+                            <tr>
+                                <td class="fw-semibold">{{ $sale->invoice_number }}</td>
+                                <td>{{ $sale->sale_date->format('d/m/Y H:i') }}</td>
+                                <td>{{ $sale->customer->name ?? 'Umum' }}</td>
+                                <td class="text-end text-money">{{ rupiah($sale->total) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     </div>
 </div>
 @endsection

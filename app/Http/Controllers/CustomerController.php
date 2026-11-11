@@ -1,92 +1,83 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Validation\Rule;
 
-class CustomerController extends Controller implements HasMiddleware
+class CustomerController extends Controller
 {
-    public static function middleware(): array
-    {
-        return [new Middleware('role:admin', only: ['destroy'])];
-    }
-
     public function index(Request $request)
     {
-        $q = $request->search;
-
         $customers = Customer::withCount('sales')
-            ->when($q, function ($x) use ($q) {
-                $x->where(function ($y) use ($q) {
-                    $y->where('name', 'like', "%$q%")
-                      ->orWhere('phone', 'like', "%$q%");
-                });
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
             })
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        return view('customers.index', compact('customers', 'q'));
+        return view('customers.index', compact('customers'));
     }
 
     public function create()
     {
-        return view('customers.form', ['customer' => new Customer()]);
+        return view('customers.create');
     }
 
     public function store(Request $request)
     {
-        $data = $this->validateData($request);
-        Customer::create($data);
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^08[0-9]{8,11}$/', 'unique:customers,phone'],
+            'email' => ['nullable', 'email', 'max:150'],
+            'address' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        Customer::create($validated);
 
         return redirect()->route('customers.index')->with('success', 'Pelanggan berhasil ditambahkan.');
     }
 
     public function show(Customer $customer)
     {
-        $customer->load(['sales' => fn($q) => $q->latest('sale_date')->limit(20)]);
-
+        $customer->load(['sales' => function($q) {
+            $q->latest()->limit(10);
+        }]);
+        
         return view('customers.show', compact('customer'));
     }
 
     public function edit(Customer $customer)
     {
-        return view('customers.form', compact('customer'));
+        return view('customers.edit', compact('customer'));
     }
 
     public function update(Request $request, Customer $customer)
     {
-        $customer->update($this->validateData($request, $customer->id));
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^08[0-9]{8,11}$/', Rule::unique('customers', 'phone')->ignore($customer->id)],
+            'email' => ['nullable', 'email', 'max:150'],
+            'address' => ['nullable', 'string', 'max:500'],
+        ]);
 
-        return redirect()->route('customers.index')->with('success', 'Pelanggan berhasil diperbarui.');
+        $customer->update($validated);
+
+        return redirect()->route('customers.index')->with('success', 'Data pelanggan berhasil diperbarui.');
     }
 
     public function destroy(Customer $customer)
     {
-        // Relasi di migration pakai nullOnDelete, jadi riwayat transaksi aman
+        // Hanya admin yang bisa hapus
+        if (auth()->user()->role !== 'admin') {
+            abort(403);
+        }
+
         $customer->delete();
 
-        return back()->with('success', 'Pelanggan dihapus. Riwayat transaksi tetap tersimpan.');
-    }
-
-    private function validateData(Request $request, ?int $ignoreId = null): array
-    {
-        return $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'phone' => ['nullable', 'string', 'max:20', 'regex:/^08[0-9]{8,11}$/',
-                Rule::unique('customers', 'phone')->ignore($ignoreId)],
-            'email' => ['nullable', 'email', 'max:150'],
-            'address' => ['nullable', 'string', 'max:500'],
-        ], [
-            'name.required' => 'Nama pelanggan wajib diisi.',
-            'name.max' => 'Nama maksimal 100 karakter.',
-            'phone.regex' => 'Nomor HP harus diawali 08 dan terdiri dari 10–13 digit.',
-            'phone.unique' => 'Nomor HP sudah terdaftar.',
-            'email.email' => 'Format email tidak valid.',
-            'address.max' => 'Alamat maksimal 500 karakter.',
-        ]);
+        return redirect()->route('customers.index')->with('success', 'Pelanggan berhasil dihapus.');
     }
 }

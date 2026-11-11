@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Category;
@@ -13,48 +14,65 @@ class ProductController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
-        return [new Middleware('role:admin', except: ['index', 'show'])];
+        return [
+            new Middleware('role:admin', except: ['index', 'show']),
+        ];
     }
 
     public function index(Request $request)
     {
+        $categories = Category::orderBy('name')->get();
+        
         $products = Product::with('category')
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $s = $request->search;
-                $q->where(function ($x) use ($s) {
-                    $x->where('name', 'like', "%$s%")
-                      ->orWhere('sku', 'like', "%$s%");
+            ->when($request->search, function ($query, $search) {
+                return $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('sku', 'like', "%{$search}%");
                 });
             })
-            ->when($request->filled('category_id'), fn($q) => $q->where('category_id', $request->category_id))
-            ->when($request->filled('status'), fn($q) => $q->where('is_active', $request->status === '1'))
+            ->when($request->category_id, function ($query, $category_id) {
+                return $query->where('category_id', $category_id);
+            })
+            ->when($request->has('is_active'), function ($query) use ($request) {
+                if ($request->is_active !== '') {
+                    return $query->where('is_active', $request->is_active);
+                }
+            })
             ->latest()
             ->paginate(10)
             ->withQueryString();
-
-        $categories = Category::orderBy('name')->get();
 
         return view('products.index', compact('products', 'categories'));
     }
 
     public function create()
     {
-        return view('products.form', [
-            'product' => new Product(),
-            'categories' => Category::orderBy('name')->get(),
-        ]);
+        $categories = Category::orderBy('name')->get();
+        return view('products.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
-        $data = $this->validateData($request);
-        $data['is_active'] = $request->boolean('is_active');
+        $validated = $request->validate([
+            'category_id' => ['required', 'exists:categories,id'],
+            'sku' => ['required', 'string', 'max:50', 'alpha_dash', 'unique:products,sku'],
+            'name' => ['required', 'string', 'max:150'],
+            'unit' => ['required', 'string', 'max:20'],
+            'purchase_price' => ['required', 'numeric', 'min:0'],
+            'selling_price' => ['required', 'numeric', 'min:0', 'gte:purchase_price'],
+            'stock' => ['required', 'integer', 'min:0'],
+            'min_stock' => ['required', 'integer', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'is_active' => ['boolean'],
+        ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('products', 'public');
+            $validated['image'] = $request->file('image')->store('products', 'public');
         }
 
-        Product::create($data);
+        $validated['is_active'] = $request->boolean('is_active');
+
+        Product::create($validated);
 
         return redirect()->route('products.index')->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -67,33 +85,42 @@ class ProductController extends Controller implements HasMiddleware
 
     public function edit(Product $product)
     {
-        return view('products.form', [
-            'product' => $product,
-            'categories' => Category::orderBy('name')->get(),
-        ]);
+        $categories = Category::orderBy('name')->get();
+        return view('products.edit', compact('product', 'categories'));
     }
 
     public function update(Request $request, Product $product)
     {
-        $data = $this->validateData($request, $product->id);
-        $data['is_active'] = $request->boolean('is_active');
+        $validated = $request->validate([
+            'category_id' => ['required', 'exists:categories,id'],
+            'sku' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('products', 'sku')->ignore($product->id)],
+            'name' => ['required', 'string', 'max:150'],
+            'unit' => ['required', 'string', 'max:20'],
+            'purchase_price' => ['required', 'numeric', 'min:0'],
+            'selling_price' => ['required', 'numeric', 'min:0', 'gte:purchase_price'],
+            'min_stock' => ['required', 'integer', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'is_active' => ['boolean'],
+        ]);
 
         if ($request->hasFile('image')) {
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
-            $data['image'] = $request->file('image')->store('products', 'public');
+            $validated['image'] = $request->file('image')->store('products', 'public');
         }
 
-        $product->update($data);
+        $validated['is_active'] = $request->boolean('is_active');
+
+        $product->update($validated);
 
         return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui.');
     }
 
     public function destroy(Product $product)
     {
-        if ($product->saleItems()->exists() || $product->purchaseItems()->exists()) {
-            return back()->with('error', 'Produk sudah punya riwayat transaksi. Nonaktifkan saja, jangan dihapus.');
+        if ($product->saleItems()->count() > 0 || $product->purchaseItems()->count() > 0) {
+            return redirect()->route('products.index')->with('error', 'Produk ini sudah memiliki riwayat transaksi, tidak bisa dihapus. Silakan nonaktifkan saja.');
         }
 
         if ($product->image) {
@@ -102,43 +129,6 @@ class ProductController extends Controller implements HasMiddleware
 
         $product->delete();
 
-        return back()->with('success', 'Produk berhasil dihapus.');
-    }
-
-    private function validateData(Request $request, ?int $ignoreId = null): array
-    {
-        $rules = [
-            'category_id' => ['required', 'exists:categories,id'],
-            'sku' => ['required', 'string', 'max:50', 'alpha_dash',
-                Rule::unique('products', 'sku')->ignore($ignoreId)],
-            'name' => ['required', 'string', 'max:150'],
-            'unit' => ['required', 'string', 'max:20'],
-            'purchase_price' => ['required', 'numeric', 'min:0'],
-            'selling_price' => ['required', 'numeric', 'min:0', 'gte:purchase_price'],
-            'min_stock' => ['required', 'integer', 'min:0'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ];
-
-        // Stok hanya wajib diisi saat tambah produk baru (create)
-        if (! $ignoreId) {
-            $rules['stock'] = ['required', 'integer', 'min:0'];
-        }
-
-        return $request->validate($rules, [
-            'category_id.required' => 'Kategori wajib dipilih.',
-            'category_id.exists' => 'Kategori tidak valid.',
-            'sku.required' => 'SKU wajib diisi.',
-            'sku.unique' => 'SKU sudah dipakai produk lain.',
-            'sku.alpha_dash' => 'SKU hanya boleh huruf, angka, strip, dan underscore.',
-            'name.required' => 'Nama produk wajib diisi.',
-            'unit.required' => 'Satuan wajib diisi.',
-            'purchase_price.required' => 'Harga modal wajib diisi.',
-            'selling_price.required' => 'Harga jual wajib diisi.',
-            'selling_price.gte' => 'Harga jual tidak boleh di bawah modal.',
-            'stock.required' => 'Stok awal wajib diisi.',
-            'image.image' => 'File harus berupa gambar.',
-            'image.mimes' => 'Format gambar harus jpg, jpeg, png, atau webp.',
-            'image.max' => 'Gambar maksimal 2 MB.',
-        ]);
+        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Seeders;
 
 use App\Models\Category;
@@ -8,9 +9,16 @@ class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        $cats = ['Minuman','Makanan Ringan','Sembako','Alat Tulis','Kebersihan'];
-        foreach ($cats as $c) {
-            Category::create(['name' => $c, 'description' => "Kategori $c"]);
+        $data = [
+            ['name' => 'Minuman', 'description' => 'Minuman kemasan dan sachet'],
+            ['name' => 'Makanan Ringan', 'description' => 'Snack dan camilan'],
+            ['name' => 'Sembako', 'description' => 'Kebutuhan pokok sehari-hari'],
+            ['name' => 'Alat Tulis', 'description' => 'Kebutuhan sekolah dan kantor'],
+            ['name' => 'Perawatan Diri', 'description' => 'Sabun, sampo, pasta gigi'],
+        ];
+
+        foreach ($data as $row) {
+            Category::create($row);
         }
     }
 }

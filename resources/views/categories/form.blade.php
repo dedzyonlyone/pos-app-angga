@@ -1,52 +1,31 @@
-@extends('layouts.app')
-@section('title', $category->exists ? 'Ubah Kategori' : 'Tambah Kategori')
-@section('content')
-
-<div class="row justify-content-center">
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-body">
-
-                <form method="POST"
-                      action="{{ $category->exists ? route('categories.update', $category) : route('categories.store') }}">
-                    @csrf
-                    @if($category->exists)
-                        @method('PUT')
-                    @endif
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama <span class="text-danger">*</span></label>
-                        <input name="name" value="{{ old('name', $category->name) }}"
-                               class="form-control @error('name') is-invalid @enderror"
-                               maxlength="100" required autofocus>
-                        @error('name')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Deskripsi</label>
-                        <input name="description" value="{{ old('description', $category->description) }}"
-                               class="form-control @error('description') is-invalid @enderror"
-                               maxlength="255" placeholder="Opsional, misal: minuman dingin & panas">
-                        @error('description')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <hr>
-
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ route('categories.index') }}" class="btn btn-light">Batal</a>
-                        <button class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i> Simpan
-                        </button>
-                    </div>
-                </form>
-
-            </div>
-        </div>
-    </div>
+<div class="mb-3">
+    <label for="name" class="form-label">Nama Kategori <span class="text-danger">*</span></label>
+    <input type="text" 
+           name="name" 
+           id="name" 
+           class="form-control @error('name') is-invalid @enderror" 
+           value="{{ old('name', $category->name ?? '') }}" 
+           required 
+           autofocus>
+    @error('name')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
 </div>
 
-@endsection
+<div class="mb-3">
+    <label for="description" class="form-label">Deskripsi</label>
+    <textarea name="description" 
+              id="description" 
+              rows="3" 
+              class="form-control @error('description') is-invalid @enderror">{{ old('description', $category->description ?? '') }}</textarea>
+    @error('description')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="mt-4 pt-3 border-top">
+    <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-save me-1"></i> Simpan
+    </button>
+    <a href="{{ route('categories.index') }}" class="btn btn-outline-secondary ms-2">Batal</a>
+</div>

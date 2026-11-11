@@ -1,17 +1,15 @@
 <?php
-namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
+namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
     public function showLoginForm()
     {
-        if (Auth::check()) return redirect()->route('dashboard');
         return view('auth.login');
     }
 
@@ -20,32 +18,32 @@ class LoginController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-        ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'password.required' => 'Password wajib diisi.',
         ]);
 
-        $key = 'login:' . strtolower($credentials['email']) . '|' . $request->ip();
+        $key = 'login:' . $request->ip();
+
         if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages([
-                'email' => 'Terlalu banyak percobaan. Coba lagi dalam ' . RateLimiter::availableIn($key) . ' detik.',
-            ]);
+            return back()
+                ->withErrors(['email' => 'Terlalu banyak percobaan. Coba lagi dalam 1 menit.'])
+                ->withInput();
         }
 
         if (! Auth::attempt($credentials)) {
             RateLimiter::hit($key, 60);
-            throw ValidationException::withMessages(['email' => 'Email atau password salah.']);
+            return back()
+                ->withErrors(['email' => 'Email atau password salah.'])
+                ->withInput();
         }
 
-        $user = Auth::user();
-        if (! $user->is_active) {
+        if (! Auth::user()->is_active) {
             Auth::logout();
-            throw ValidationException::withMessages(['email' => 'Akun Anda dinonaktifkan, hubungi admin.']);
+            return back()
+                ->withErrors(['email' => 'Akun Anda dinonaktifkan, hubungi admin.'])
+                ->withInput();
         }
 
-        RateLimiter::clear($key);
         $request->session()->regenerate();
+
         return redirect()->intended(route('dashboard'));
     }
 
@@ -54,6 +52,7 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 }

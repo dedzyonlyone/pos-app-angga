@@ -1,0 +1,10 @@
+@extends('layouts.app')
+@section('title', 'Edit User')
+@section('content')
+<div class="row justify-content-center animate-fade-up"><div class="col-lg-8"><div class="card shadow-sm">
+    <div class="card-header bg-white py-3"><h5 class="mb-0 fw-bold text-dark">Edit User: {{ $user->name }}</h5></div>
+    <div class="card-body">
+        <form action="{{ route('users.update', $user->id) }}" method="POST">@csrf @method('PUT') @include('users.form')</form>
+    </div>
+</div></div></div>
+@endsection

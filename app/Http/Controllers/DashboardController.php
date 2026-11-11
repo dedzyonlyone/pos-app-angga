@@ -1,32 +1,38 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use App\Models\Sale;
 use App\Models\Product;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Sale;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function __invoke()
     {
-        $user = Auth::user();
         $today = now()->toDateString();
-        $isKasir = $user->role === 'kasir';
 
-        $todaySales = Sale::whereDate('sale_date', $today)->where('status','paid');
-        if ($isKasir) $todaySales->where('user_id', $user->id);
+        $baseQuery = Sale::where('status', 'paid')
+            ->whereDate('sale_date', $today);
 
-        $cards = [
-            'penjualan_hari_ini' => (clone $todaySales)->sum('total'),
-            'transaksi_hari_ini' => (clone $todaySales)->count(),
-            'stok_menipis'       => Product::lowStock()->active()->count(),
-            'produk_aktif'       => Product::active()->count(),
-        ];
+        if (auth()->user()->role === 'kasir') {
+            $baseQuery->where('user_id', auth()->id());
+        }
 
-        $recentSales = Sale::with('user','customer')
-            ->when($isKasir, fn($q) => $q->where('user_id', $user->id))
-            ->latest('sale_date')->limit(5)->get();
+        $salesToday = (clone $baseQuery)->sum('total');
+        $countToday = (clone $baseQuery)->count();
+        $lowStock = Product::whereColumn('stock', '<=', 'min_stock')->count();
+        $activeProducts = Product::where('is_active', true)->count();
 
-        return view('dashboard', compact('cards','recentSales'));
+        $latestSales = Sale::with('customer')
+            ->where('status', 'paid')
+            ->when(auth()->user()->role === 'kasir', fn ($q) => $q->where('user_id', auth()->id()))
+            ->latest('sale_date')
+            ->limit(5)
+            ->get();
+
+        return view('dashboard', compact(
+            'salesToday', 'countToday', 'lowStock', 'activeProducts', 'latestSales'
+        ));
     }
 }

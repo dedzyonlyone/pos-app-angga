@@ -6,32 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('sales', function (Blueprint $table) {
-    $table->id();
-    $table->string('invoice_number', 30)->unique();
-    $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
-    $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
-    $table->dateTime('sale_date');
-    $table->decimal('subtotal', 15, 2);
-    $table->decimal('discount', 15, 2)->default(0);
-    $table->decimal('total', 15, 2);
-    $table->enum('payment_method', ['tunai', 'qris', 'transfer'])->default('tunai');
-    $table->decimal('paid_amount', 15, 2);
-    $table->decimal('change_amount', 15, 2);
-    $table->enum('status', ['paid', 'void'])->default('paid');
-    $table->string('note', 255)->nullable();
-    $table->timestamps();
-});
+            $table->id();
+            $table->string('invoice_number', 30)->unique();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
+            $table->dateTime('sale_date');
+            $table->decimal('subtotal', 15, 2);
+            $table->decimal('discount', 15, 2)->default(0);
+            $table->decimal('total', 15, 2);
+            $table->enum('payment_method', ['tunai', 'qris', 'transfer'])->default('tunai');
+            $table->decimal('paid_amount', 15, 2);
+            $table->decimal('change_amount', 15, 2);
+            $table->enum('status', ['paid', 'void'])->default('paid');
+            $table->string('note', 255)->nullable();
+            $table->timestamps();
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('sales');
