@@ -1,58 +1,79 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🛒 POS App - Point of Sale System (Laravel 13)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi Point of Sale (POS) berbasis web yang dirancang khusus untuk memenuhi standar operasional minimarket/toko ritel. Dibangun dari nol menggunakan **Laravel 13 (Monolith)**, **Bootstrap 5**, dan **Vanilla JavaScript** tanpa menggunakan *admin panel generator*.
 
-## About Laravel
+Aplikasi ini mencakup seluruh modul wajib (M1-M11) dan modul bonus (B1-B3) sesuai standar kompetensi Praktik Kerja Lapangan (PKL).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📑 Daftar Isi
+1. [Fitur Utama](#-fitur-utama)
+2. [Modul Bonus](#-modul-bonus)
+3. [Tech Stack](#️-tech-stack)
+4. [Arsitektur & Struktur Database](#️-arsitektur--struktur-database)
+5. [Cara Instalasi](#-cara-instalasi-local-development)
+6. [Akun Demo](#-akun-demo)
+7. [Menjalankan Testing](#-menjalankan-testing)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✨ Fitur Utama (M1 - M11)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **M1: Autentikasi & Hak Akses**: Login/logout dengan session Laravel, pembatasan percobaan login (Rate Limiter), dan pembatasan hak akses antara Admin dan Kasir via Middleware (`EnsureRole`).
+- **M2: Dashboard**: Ringkasan penjualan harian, jumlah transaksi, produk aktif, dan alert stok menipis.
+- **M3 & M4: Master Data**: CRUD Kategori dan Produk. Produk dilengkapi fitur upload gambar, validasi harga jual (tidak boleh di bawah modal), filter kategori, dan status stok menipis.
+- **M5 & M6: Pelanggan & Supplier**: Manajemen data pelanggan dan supplier beserta validasi format nomor HP.
+- **M6: Stok Masuk (Purchases)**: Transaksi *Master-Detail* (satu dokumen banyak item) yang dibungkus dengan `DB::transaction()` untuk menjamin konsistensi pengurangan/penambahan stok.
+- **M7: Transaksi Kasir (Point of Sale)**:
+  - Antarmuka kasir modern dengan katalog produk dan keranjang interaktif (Vanilla JS).
+  - Pembatasan stok menggunakan *Pessimistic Locking* (`lockForUpdate`) untuk mencegah *race condition* (oversold).
+  - **Auto-Gateway QRIS**: Pop-up QRIS dengan hitungan waktu (*countdown timer*) 60 detik.
+  - Instruksi Transfer Bank otomatis.
+- **M8: Riwayat & Struk**: Filter tanggal, invoice, dan kasir. Desain halaman struk presisi untuk kertas thermal 80mm (`window.print`).
+- **M9: Laporan Penjualan**: Query agregasi (SUM, COUNT, GROUP BY) untuk menampilkan omzet, laba kotor, 10 produk terlaris, dan peringatan stok.
+- **M10 & M11: Manajemen User & Pengaturan**: CRUD user dengan enkripsi password, fitur ubah password mandiri, serta pengaturan profil toko berbasis *key-value*.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🏆 Modul Bonus (B1 - B3)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **B1: Export Excel**: Laporan penjualan dapat di-*export* ke format `.xlsx` menggunakan *package* `maatwebsite/excel`.
+- **B2: Void Transaksi**: Fitur pembatalan transaksi oleh Admin dengan alasan tertentu, dibungkus `DB::transaction()` untuk mengembalikan stok produk secara otomatis.
+- **B3: Log Aktivitas**: Mencatat setiap aksi Create, Update, Delete, dan Void ke dalam tabel `activity_logs` beserta data lama dan baru.
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🛠️ Tech Stack
 
-```bash
-composer require laravel/boost --dev
+- **Framework**: Laravel 13 (PHP 8.3+)
+- **Database**: MySQL 8 (InnoDB, `utf8mb4_unicode_ci`)
+- **Tampilan**: Blade Template, Bootstrap 5, Bootstrap Icons, CSS Kustom (Animasi modern)
+- **JavaScript**: Vanilla JS (interaksi kasir), SweetAlert2 (Pop-up QRIS)
+- **Testing**: PHPUnit (8 Feature Test)
+- **Tools**: Draw.io (ERD), Git/GitHub, Laragon, VS Code
 
-php artisan boost:install
-```
+---
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## ⚙️ Arsitektur & Struktur Database
 
-## Contributing
+Aplikasi ini mengadopsi pola arsitektur **MVC (Model-View-Controller)** dan menerapkan 10 tabel utama dengan relasi *One-to-Many*.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Relasi Utama:
+1. **Master ke Transaksi**: `products` terhubung ke `purchase_items` dan `sale_items`.
+2. **Header ke Detail**: `sales` (header) memiliki relasi `hasMany` ke `sale_items` (detail), dan `purchases` ke `purchase_items`.
+3. **Snapshot Pattern**: Pada tabel `sale_items`, kolom `product_name`, `price`, dan `purchase_price` disalin dari tabel `products` saat transaksi terjadi. Ini bertujuan agar laporan historis (struk lama) tidak berubah saat harga produk di-update di masa depan.
+4. **Tipe Data Uang**: Seluruh nominal uang menggunakan tipe `DECIMAL(15,2)` untuk mencegah *floating point error*.
 
-## Code of Conduct
+### Struktur Folder Kustom:
+- `app/Exports/`: Berisi class `SalesExport` untuk keperluan export Excel.
+- `app/Support/`: Berisi helper statis seperti `Rupiah.php` (format mata uang) dan `ActivityLogger.php` (pencatatan log).
+- `app/Http/Middleware/EnsureRole.php`: Middleware untuk mengecek role user di sisi server (403 Forbidden).
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 🚀 Cara Instalasi (Local Development)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Ikuti langkah berikut untuk menjalankan proyek ini di komputer Anda:
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. **Clone repository ini:**
+   ```bash
+   git clone https://github.com/dedzyonlyone/pos-app-angga.git
+   cd pos-app-angga
